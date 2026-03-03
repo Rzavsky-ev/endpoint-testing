@@ -20,7 +20,7 @@ import static io.restassured.RestAssured.given;
 
 @Epic("Тестирование веб-сервиса")
 @Feature("Функционал ACTION")
-@DisplayName("Тесты для действия ACTION")
+@DisplayName("Тесты для действия - ACTION")
 public class ActionTest extends BaseTest {
 
     @Test
@@ -104,10 +104,7 @@ public class ActionTest extends BaseTest {
         performSuccessfulLogin(validToken);
 
         Allure.step("Выполнение ACTION с невалидным токеном", () -> {
-            Response actionResponse = given()
-                    .spec(forValidApiKey(invalidToken, ACTION_ACTION))
-                    .when()
-                    .post(ENDPOINT);
+            Response actionResponse = performAction(invalidToken);
 
             Allure.step("Проверка ответа: ожидаем ошибку 'неверный формат токена'", () ->
                     verifyInvalidTokenError(actionResponse));

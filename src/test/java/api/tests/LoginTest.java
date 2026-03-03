@@ -12,16 +12,16 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static api.specs.RequestSpec.*;
+import static api.utils.ActionSteps.performLogin;
 import static api.utils.AllureReporter.addTestData;
 import static api.utils.Constants.*;
 import static api.utils.ResponseVerifier.*;
-import static api.utils.WireMockStubBuilder.mockAuthError;
-import static api.utils.WireMockStubBuilder.mockAuthSuccess;
+import static api.utils.WireMockStubBuilder.*;
 import static io.restassured.RestAssured.given;
 
 @Epic("Тестирование веб-сервиса")
 @Feature("Функционал LOGIN")
-@DisplayName("Тесты для входа в систему (LOGIN)")
+@DisplayName("Тесты для входа в систему - LOGIN")
 public class LoginTest extends BaseTest {
 
     @Test
@@ -54,10 +54,7 @@ public class LoginTest extends BaseTest {
         });
 
         Allure.step("Выполнение запроса на вход в систему", () -> {
-            Response response = given()
-                    .spec(forValidApiKey(token, ACTION_LOGIN))
-                    .when()
-                    .post(ENDPOINT);
+            Response response = performLogin(token);
 
             Allure.step("Проверка ответа: ожидается успешная аутентификация", () ->
                     verifyLoginSuccess(response));
@@ -80,10 +77,7 @@ public class LoginTest extends BaseTest {
                 addTestData("Тестовый сценарий", description));
 
         Allure.step("Выполнение запроса на вход с некорректным токеном", () -> {
-            Response response = given()
-                    .spec(forValidApiKey(token, ACTION_LOGIN))
-                    .when()
-                    .post(ENDPOINT);
+            Response response = performLogin(token);
 
             Allure.step("Проверка ответа: ожидается ошибка 'неверный формат токена'", () ->
                     verifyInvalidTokenError(response));
@@ -123,10 +117,7 @@ public class LoginTest extends BaseTest {
         });
 
         Allure.step("Выполнение запроса на вход при сбое внешнего сервиса", () -> {
-            Response response = given()
-                    .spec(forValidApiKey(token, ACTION_LOGIN))
-                    .when()
-                    .post(ENDPOINT);
+            Response response = performLogin(token);
 
             Allure.step(String.format("Проверка ответа: ожидается ошибка, вызванная сбоем внешнего сервиса (код %d)",
                     statusCode), () ->
@@ -231,20 +222,14 @@ public class LoginTest extends BaseTest {
         });
 
         Allure.step("Первый вход в систему", () -> {
-            Response firstResponse = given()
-                    .spec(forValidApiKey(token, ACTION_LOGIN))
-                    .when()
-                    .post(ENDPOINT);
+            Response firstResponse = performLogin(token);
 
             Allure.step("Проверка первого ответа: ожидается успешный вход", () ->
                     verifyLoginSuccess(firstResponse));
         });
 
         Allure.step("Попытка повторного входа с тем же токеном", () -> {
-            Response secondResponse = given()
-                    .spec(forValidApiKey(token, ACTION_LOGIN))
-                    .when()
-                    .post(ENDPOINT);
+            Response secondResponse = performLogin(token);
 
             Allure.step("Проверка ответа: ожидается ошибка 'токен уже используется'", () ->
                     verifyTokenAlreadyExistsError(secondResponse, token));

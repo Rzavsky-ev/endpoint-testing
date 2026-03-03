@@ -18,7 +18,7 @@ import static io.restassured.RestAssured.given;
 
 @Epic("Тестирование веб-сервиса")
 @Feature("Функционал LOGOUT")
-@DisplayName("Тесты для выхода из системы (LOGOUT)")
+@DisplayName("Тесты для выхода из системы - LOGOUT")
 public class LogoutTest extends BaseTest {
 
     @Test
@@ -49,7 +49,6 @@ public class LogoutTest extends BaseTest {
 
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
-            mockDoActionSuccess(token);
             addTestData("Настройка тестового окружения",
                     "Сервисы проверки токенов и выполнения действий настроены на успешные ответы");
         });
@@ -58,10 +57,7 @@ public class LogoutTest extends BaseTest {
         performSuccessfulLogout(token);
 
         Allure.step("Проверка, что токен больше не работает после выхода", () -> {
-            Response actionResponse = given()
-                    .spec(forValidApiKey(token, ACTION_ACTION))
-                    .when()
-                    .post(ENDPOINT);
+            Response actionResponse = performAction(token);
 
             Allure.step("Проверка ответа: ожидается ошибка 'токен не найден'", () ->
                     verifyTokenNotFoundError(actionResponse, token));
@@ -111,10 +107,7 @@ public class LogoutTest extends BaseTest {
         performSuccessfulLogin(validToken);
 
         Allure.step("Попытка выхода из системы с некорректным токеном", () -> {
-            Response logoutResponse = given()
-                    .spec(forValidApiKey(invalidToken, ACTION_LOGOUT))
-                    .when()
-                    .post(ENDPOINT);
+            Response logoutResponse = performLogout(invalidToken);
 
             Allure.step("Проверка ответа: ожидается ошибка 'неверный формат токена'", () ->
                     verifyInvalidTokenError(logoutResponse));
@@ -146,10 +139,7 @@ public class LogoutTest extends BaseTest {
                                 token.length())));
 
         Allure.step("Выполнение запроса на выход без предварительного входа", () -> {
-            Response response = given()
-                    .spec(forValidApiKey(token, ACTION_LOGOUT))
-                    .when()
-                    .post(ENDPOINT);
+            Response response = performLogout(token);
 
             Allure.step("Проверка ответа: ожидается ошибка 'токен не найден'", () ->
                     verifyTokenNotFoundError(response, token));
@@ -192,10 +182,7 @@ public class LogoutTest extends BaseTest {
         performSuccessfulLogout(token);
 
         Allure.step("Повторная попытка выхода из системы", () -> {
-            Response secondLogout = given()
-                    .spec(forValidApiKey(token, ACTION_LOGOUT))
-                    .when()
-                    .post(ENDPOINT);
+            Response secondLogout = performLogout(token);
 
             Allure.step("Проверка ответа: ожидается ошибка 'токен не найден'", () ->
                     verifyTokenNotFoundError(secondLogout, token));
@@ -328,10 +315,7 @@ public class LogoutTest extends BaseTest {
         performSuccessfulLogout(token);
 
         Allure.step("Попытка выполнения действия после выхода из системы", () -> {
-            Response finalActionResponse = given()
-                    .spec(forValidApiKey(token, ACTION_ACTION))
-                    .when()
-                    .post(ENDPOINT);
+            Response finalActionResponse = performLogout(token);
 
             Allure.step("Проверка ответа: ожидается ошибка 'токен не найден'", () ->
                     verifyTokenNotFoundError(finalActionResponse, token));
@@ -390,7 +374,6 @@ public class LogoutTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token1);
             mockAuthSuccess(token2);
-            mockDoActionSuccess(token1);
             mockDoActionSuccess(token2);
             addTestData("Настройка тестового окружения",
                     "Сервисы настроены на успешные ответы для двух токенов");

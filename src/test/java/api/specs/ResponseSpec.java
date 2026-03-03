@@ -23,8 +23,7 @@ public class ResponseSpec {
     /**
      * Спецификация для успешного ответа (HTTP 200).
      *
-     * @return спецификация с ожиданием: статус 200, ContentType JSON,
-     * result = "OK" и отсутствием сообщения об ошибке
+     * @return спецификация с ожиданием: статус 200, ContentType JSON
      */
     public static ResponseSpecification forSuccess() {
         return new ResponseSpecBuilder()
@@ -39,8 +38,7 @@ public class ResponseSpec {
      * Базовая спецификация для ошибочного ответа с заданным кодом статуса.
      *
      * @param expectedStatusCode ожидаемый HTTP статус код
-     * @return спецификация с ожиданием: указанный статус, ContentType JSON,
-     * result = "ERROR" и непустым сообщением
+     * @return спецификация с ожиданием: указанный статус, ContentType JSON
      */
     public static ResponseSpecification forError(int expectedStatusCode) {
         return new ResponseSpecBuilder()

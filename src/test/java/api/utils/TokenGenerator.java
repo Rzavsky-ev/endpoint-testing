@@ -57,14 +57,14 @@ public class TokenGenerator {
     /**
      * Генерирует токен со строчной буквой в конце.
      */
-    public static String generateLowerCaseToken() {
+    private static String generateLowerCaseToken() {
         return faker.regexify("[A-F0-9]{" + (TOKEN_LENGTH - 1) + "}") + "a";
     }
 
     /**
      * Генерирует токен из спецсимволов.
      */
-    public static String generateTokenWithSpecialChars() {
+    private static String generateTokenWithSpecialChars() {
         return faker.regexify("[@#$%^&*]{" + TOKEN_LENGTH + "}");
     }
 
