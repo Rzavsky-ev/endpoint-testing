@@ -312,7 +312,6 @@ public class LoginTest extends BaseTest {
 
         Allure.step("Проверка, что внешний сервис не вызывался", () -> {
             wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH)));
-
             addTestData("Проверка вызовов внешнего сервиса",
                     "✓ Внешний сервис аутентификации НЕ вызывался (корректно)");
         });
