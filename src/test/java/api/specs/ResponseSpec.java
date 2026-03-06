@@ -11,8 +11,8 @@ import static org.hamcrest.Matchers.*;
 /**
  * Утилитный класс для создания спецификаций ответов API.
  * <p>
- * Содержит готовые спецификации для проверки успешных и ошибочных ответов,
- * а также специализированные спецификации для конкретных ошибок.
+ * Содержит готовые спецификации для проверки успешных и ошибочных ответов.
+ * Все спецификации включают проверку Content-Type и структуры JSON ответа.
  */
 public class ResponseSpec {
 
@@ -21,9 +21,9 @@ public class ResponseSpec {
     }
 
     /**
-     * Спецификация для успешного ответа (HTTP 200).
+     * Создает спецификацию для успешного ответа.
      *
-     * @return спецификация с ожиданием: статус 200, ContentType JSON
+     * @return спецификация для проверки успешного ответа
      */
     public static ResponseSpecification forSuccess() {
         return new ResponseSpecBuilder()
@@ -35,51 +35,14 @@ public class ResponseSpec {
     }
 
     /**
-     * Базовая спецификация для ошибочного ответа с заданным кодом статуса.
+     * Создает спецификацию для ошибочного ответа.
      *
-     * @param expectedStatusCode ожидаемый HTTP статус код
-     * @return спецификация с ожиданием: указанный статус, ContentType JSON
+     * @return спецификация для проверки ошибочного ответа
      */
-    public static ResponseSpecification forError(int expectedStatusCode) {
+    public static ResponseSpecification forError() {
         return new ResponseSpecBuilder()
-                .expectStatusCode(expectedStatusCode)
                 .expectContentType(ContentType.JSON)
                 .expectBody(RESULT_PARAM, equalTo(RESULT_ERROR))
-                .expectBody(MESSAGE_PARAM, not(emptyOrNullString()))
-                .build();
-    }
-
-    /**
-     * Спецификация для ошибки валидации (HTTP 400).
-     *
-     * @return спецификация с кодом 400 и базовыми проверками ошибки
-     */
-    public static ResponseSpecification forValidationError() {
-        return forError(HTTP_BAD_REQUEST);
-    }
-
-    /**
-     * Спецификация для ошибки "токен не найден" (HTTP 403).
-     *
-     * @param token токен, который не был найден в системе
-     * @return спецификация с кодом 403 и конкретным сообщением об ошибке
-     */
-    public static ResponseSpecification forTokenNotFoundError(String token) {
-        return new ResponseSpecBuilder()
-                .addResponseSpecification(forError(HTTP_FORBIDDEN))
-                .expectBody(MESSAGE_PARAM, equalTo(String.format(TOKEN_NOT_FOUND_ERROR, token)))
-                .build();
-    }
-
-    /**
-     * Спецификация для ошибки невалидного API ключа (HTTP 401).
-     *
-     * @return спецификация с кодом 401 и сообщением о неверном ключе
-     */
-    public static ResponseSpecification forInvalidApiKeyError() {
-        return new ResponseSpecBuilder()
-                .addResponseSpecification(forError(HTTP_UNAUTHORIZED))
-                .expectBody(MESSAGE_PARAM, equalTo(INVALID_API_KEY_ERROR))
                 .build();
     }
 }

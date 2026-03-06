@@ -16,6 +16,7 @@ import static api.utils.AllureReporter.addTestData;
 import static api.utils.Constants.*;
 import static api.utils.ResponseVerifier.*;
 import static api.utils.WireMockStubBuilder.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
 
 @Epic("Тестирование веб-сервиса")
@@ -28,10 +29,10 @@ public class ActionTest extends BaseTest {
     @DisplayName("Выполнение ACTION после успешного LOGIN")
     @Description("""
             Проверяет успешное выполнение действия после аутентификации:
-            - Генерируется валидный токен
+            - Генерируется валидный токен (32 символа, только цифры и буквы A-F)
             - Выполняется успешный LOGIN (токен сохраняется)
             - Выполняется ACTION с тем же токеном
-            - Ожидается успешный ответ
+            - Система возвращает сообщение об успехе: {"result":"OK"}
             """)
     @Tag(SMOKE)
     void performActionAfterSuccessfulLogin() {
@@ -57,7 +58,7 @@ public class ActionTest extends BaseTest {
         });
 
         performSuccessfulLogin(token);
-        performSuccessfulAction(token, "Выполнение запроса ACTION");
+        performSuccessfulAction(token);
     }
 
     @Test
@@ -67,7 +68,7 @@ public class ActionTest extends BaseTest {
             Проверяет обработку ACTION с невалидным токеном после успешной аутентификации:
             - Выполняется успешный LOGIN с валидным токеном
             - Отправляется запрос ACTION с другим (невалидным) токеном
-            - Ожидается ошибка, так как токен невалидный
+            - Ожидается ответ: {"result": "ERROR", "message":"token: должно соответствовать \\"^[0-9A-F]{32}$\\""}
             """)
     @Tag(REGRESSION)
     void performActionWithInvalidTokenAfterValidLogin() {
@@ -84,10 +85,7 @@ public class ActionTest extends BaseTest {
                                         Сценарий:
                                         1. LOGIN с валидным токеном (ожидается успех)
                                         2. ACTION с невалидным токеном (ожидается ошибка)
-                                        Ожидаемый результат:
-                                        • ACTION должен быть отклонен
-                                        • Статус: 400 Bad Request
-                                        • Сообщение: "Неверный формат токена. Токен должен содержать 32 символа (цифры и буквы A-F)"
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 validToken,
                                 validToken.length(),
@@ -106,8 +104,17 @@ public class ActionTest extends BaseTest {
         Allure.step("Выполнение ACTION с невалидным токеном", () -> {
             Response actionResponse = performAction(invalidToken);
 
-            Allure.step("Проверка ответа: ожидаем ошибку 'неверный формат токена'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'token: должно соответствовать \"^[0-9A-F]{32}$\"'", () ->
                     verifyInvalidTokenError(actionResponse));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Система отклонила запрос с некорректным токеном");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался с невалидным токеном", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_DO_ACTION))
+                    .withRequestBody(containing("token=" + invalidToken)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис НЕ вызывался с невалидным токеном");
         });
     }
 
@@ -118,7 +125,7 @@ public class ActionTest extends BaseTest {
             Проверяет обработку ACTION без предварительной аутентификации:
             - Токен никогда не проходил LOGIN
             - Отправляется запрос ACTION
-            - Ожидается ошибка: токен не найден
+            - Ожидается ответ: {"result": "ERROR", "message":"Token '<token>' not found"}
             """)
     @Tag(REGRESSION)
     void performActionWithoutLogin() {
@@ -130,7 +137,7 @@ public class ActionTest extends BaseTest {
                                         Токен: %s (валидный)
                                         Длина: %d символов
                                         Сценарий: Прямой запрос ACTION без LOGIN
-                                        Ожидается: ошибка 403 Forbidden
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token,
                                 token.length())));
@@ -138,8 +145,10 @@ public class ActionTest extends BaseTest {
         Allure.step("Выполнение запроса ACTION без предварительной аутентификации", () -> {
             Response response = performAction(token);
 
-            Allure.step("Проверка ответа: ожидаем ошибку 'токен не найден'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'Token not found'", () ->
                     verifyTokenNotFoundError(response, token));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Система отклонила запрос с токеном, не прошедшим LOGIN");
         });
     }
 
@@ -151,7 +160,7 @@ public class ActionTest extends BaseTest {
             - Выполняется успешный LOGIN
             - Выполняется LOGOUT (токен удаляется)
             - Отправляется запрос ACTION
-            - Ожидается ошибка: токен не найден
+            - Ожидается ответ: {"result": "ERROR", "message":"Token '<token>' not found"}
             """)
     @Tag(REGRESSION)
     void performActionAfterLogout() {
@@ -166,6 +175,7 @@ public class ActionTest extends BaseTest {
                                         1. LOGIN с токеном (ожидается успех)
                                         2. LOGOUT с токеном (ожидается успех)
                                         3. ACTION с тем же токеном (ожидается ошибка)
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token,
                                 token.length())));
@@ -183,8 +193,10 @@ public class ActionTest extends BaseTest {
         Allure.step("Попытка выполнения ACTION после завершения сессии", () -> {
             Response actionResponse = performAction(token);
 
-            Allure.step("Проверка ответа: ожидаем ошибку 'токен не найден'", () ->
+            Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(actionResponse, token));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Система отклонила запрос с несуществующим токеном");
         });
     }
 
@@ -197,6 +209,7 @@ public class ActionTest extends BaseTest {
             - Токен успешно аутентифицирован
             - Внешний сервис /doAction возвращает ошибку
             - Проверяется ответ приложения на внешнюю ошибку
+            - Ожидается ответ: {"result": "ERROR", "message":"Internal Server Error"}
             
             ВАЖНО: В текущей реализации приложение всегда возвращает 500 Internal Server Error
             независимо от кода ошибки внешнего сервиса (403, 404 или 500).
@@ -215,6 +228,7 @@ public class ActionTest extends BaseTest {
                                         Сценарий:
                                         1. LOGIN с токеном (ожидается успех)
                                         2. ACTION при ошибке внешнего сервиса /doAction
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 statusCode, token)));
 
@@ -230,9 +244,17 @@ public class ActionTest extends BaseTest {
         Allure.step("Выполнение ACTION при сбое внешнего сервиса", () -> {
             Response actionResponse = performAction(token);
 
-            Allure.step(String.format("Проверка ответа: ожидаем ошибку, вызванную сбоем внешнего сервиса (код %d)",
-                    statusCode), () ->
-                    verifyExternalServiceError(actionResponse, statusCode));
+            Allure.step("Проверка ответа: ожидается ошибка 'Internal Server Error'", () ->
+                    verifyExternalServiceError(actionResponse));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ:",
+                    """
+                            ✓ Сбой внешнего сервиса обработан корректно
+                            ✓ Сообщение об ошибке получено
+                            
+                            ПРИМЕЧАНИЕ:
+                            В текущей реализации приложение всегда возвращает 500 Internal Server Error
+                            независимо от кода ошибки внешнего сервиса (403, 404 или 500).
+                            """);
         });
     }
 
@@ -244,6 +266,7 @@ public class ActionTest extends BaseTest {
             - Токен успешно аутентифицирован
             - Выполняется несколько запросов ACTION подряд
             - Все запросы должны быть успешными
+            - Ожидается ответ: {"result":"OK"} для каждого действия
             """)
     @Tag(REGRESSION)
     void performMultipleActionsWithSameToken() {
@@ -255,7 +278,7 @@ public class ActionTest extends BaseTest {
                                         Токен: %s
                                         Длина: %d символов
                                         Сценарий:
-                                        1. LOGIN с токеном
+                                        1. LOGIN с токеном (ожидается успех)
                                         2. ACTION №1 (ожидается успех)
                                         3. ACTION №2 (ожидается успех)
                                         4. ACTION №3 (ожидается успех)
@@ -273,10 +296,14 @@ public class ActionTest extends BaseTest {
         performSuccessfulLogin(token);
 
         Allure.step("Выполнение нескольких запросов ACTION подряд", () -> {
-            for (int i = 0; i < 3; i++) {
-                performSuccessfulAction(token, "ACTION №" + (i + 1));
+            for (int i = 1; i <= 3; i++) {
+                Response response = performAction(token);
+                verifySuccess(response);
+                addTestData(String.format("Результат ACTION №%d", i),
+                        String.format("✓ Действие %d выполнено успешно", i));
             }
-            addTestData("Итог выполнения", "Все 3 действия ACTION выполнены успешно");
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Все 3 действия ACTION выполнены успешно");
         });
     }
 
@@ -287,7 +314,7 @@ public class ActionTest extends BaseTest {
             Проверяет обработку запроса ACTION без обязательного заголовка X-Api-Key:
             - Токен успешно аутентифицирован
             - Отправляется запрос ACTION без заголовка авторизации
-            - Ожидается ошибка: 401 Unauthorized
+            - Ожидается ответ: {"result": "ERROR", "message":"Missing or invalid API Key"}
             """)
     @Tag(REGRESSION)
     void performActionWithoutApiKey() {
@@ -300,7 +327,8 @@ public class ActionTest extends BaseTest {
                                         API ключ: отсутствует
                                         Сценарий:
                                         1. LOGIN с токеном (ожидается успех)
-                                        2. ACTION без API ключа (ожидается ошибка)
+                                        2. ACTION без API ключа
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token)));
 
@@ -313,14 +341,22 @@ public class ActionTest extends BaseTest {
 
         performSuccessfulLogin(token);
 
-        Allure.step("Выполнение ACTION без ключа доступа (API ключа)", () -> {
+        Allure.step("Выполнение ACTION без ключа доступа", () -> {
             Response response = given()
                     .spec(forEmptyApiKey(token, ACTION_ACTION))
                     .when()
                     .post(ENDPOINT);
 
-            Allure.step("Проверка ответа: ожидаем ошибку 'отсутствует API ключ'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Неверный API ключ отклонен");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_DO_ACTION)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис НЕ вызывался с отсутствующим API ключом");
         });
     }
 
@@ -331,7 +367,7 @@ public class ActionTest extends BaseTest {
             Проверяет обработку запроса ACTION с неверным API ключом:
             - Токен успешно аутентифицирован
             - Отправляется запрос ACTION с некорректным X-Api-Key
-            - Ожидается ошибка: 401 Unauthorized
+            - Ожидается ответ: {"result": "ERROR", "message":"Missing or invalid API Key"}
             """)
     @Tag(REGRESSION)
     void performActionWithInvalidApiKey() {
@@ -344,7 +380,8 @@ public class ActionTest extends BaseTest {
                                         API ключ: 'wrong-key' (недействительный)
                                         Сценарий:
                                         1. LOGIN с токеном (ожидается успех)
-                                        2. ACTION с неверным API ключом (ожидается ошибка)
+                                        2. ACTION с неверным API ключом
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token)));
 
@@ -363,8 +400,16 @@ public class ActionTest extends BaseTest {
                     .when()
                     .post(ENDPOINT);
 
-            Allure.step("Проверка ответа: ожидаем ошибку 'неверный API ключ'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Неверный API ключ отклонен");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_DO_ACTION)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис НЕ вызывался с неверным API ключом");
         });
     }
 
@@ -375,7 +420,8 @@ public class ActionTest extends BaseTest {
             Проверяет обработку запроса ACTION без параметра action:
             - Токен успешно аутентифицирован
             - Отправляется запрос без параметра action
-            - Ожидается ошибка валидации
+            - Ожидается ответ: {"result": "ERROR",
+            "message":"action: invalid action 'null'. Allowed: LOGIN, LOGOUT, ACTION"}
             """)
     @Tag(REGRESSION)
     void performActionWithoutActionParameter() {
@@ -386,9 +432,11 @@ public class ActionTest extends BaseTest {
                         String.format("""
                                         Токен: %s (валидный)
                                         Длина: %d символов
+                                        Параметр action: не указан
                                         Сценарий:
                                         1. LOGIN с токеном (ожидается успех)
                                         2. ACTION без параметра action (ожидается ошибка)
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token,
                                 token.length())));
@@ -407,8 +455,17 @@ public class ActionTest extends BaseTest {
                     .when()
                     .post(ENDPOINT);
 
-            Allure.step("Проверка ответа: ожидаем ошибку 'отсутствует обязательный параметр action'", () ->
+            Allure.step("Проверка ответа:" +
+                    " ожидается ошибка 'action: invalid action 'null'. Allowed: LOGIN, LOGOUT, ACTION'", () ->
                     verifyMissingActionError(actionResponse));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Отсутствие параметра action обработано корректно");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_DO_ACTION)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис НЕ вызывался с отсутствующим параметром action");
         });
     }
 }

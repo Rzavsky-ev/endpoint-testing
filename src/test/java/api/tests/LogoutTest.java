@@ -1,3 +1,4 @@
+
 package api.tests;
 
 import api.base.BaseTest;
@@ -14,6 +15,7 @@ import static api.utils.AllureReporter.addTestData;
 import static api.utils.Constants.*;
 import static api.utils.ResponseVerifier.*;
 import static api.utils.WireMockStubBuilder.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
 
 @Epic("Тестирование веб-сервиса")
@@ -29,6 +31,7 @@ public class LogoutTest extends BaseTest {
             - Вход в систему активирует токен
             - Выход из системы удаляет токен
             - После выхода токен перестает работать
+            - Система возвращает сообщение об успехе: {"result":"OK"} для LOGOUT
             """)
     @Tag(SMOKE)
     void successfulLogoutAfterLogin() {
@@ -50,7 +53,7 @@ public class LogoutTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
             addTestData("Настройка тестового окружения",
-                    "Сервисы проверки токенов и выполнения действий настроены на успешные ответы");
+                    "Сервис проверки токенов настроен на успешный ответ");
         });
 
         performSuccessfulLogin(token);
@@ -59,8 +62,10 @@ public class LogoutTest extends BaseTest {
         Allure.step("Проверка, что токен больше не работает после выхода", () -> {
             Response actionResponse = performAction(token);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'токен не найден'", () ->
+            Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(actionResponse, token));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Токен больше не работает после выхода из системы");
         });
     }
 
@@ -68,10 +73,11 @@ public class LogoutTest extends BaseTest {
     @Story("Ошибки валидации")
     @DisplayName("Выход из системы с некорректным токеном после успешного входа")
     @Description("""
-            Проверяет ситуацию:
-            1. Вход выполнен с валидным токеном (токен зарегистрирован в системе)
-            2. Запрос на выход отправляется с другим некорректным токеном
-            Ожидается: ошибка, так как токен для выхода не соответствует формату
+            Проверяет обработку запроса на выход с некорректным токеном:
+            - Выполняется успешный вход с валидным токеном
+            - Отправляется запрос на выход с другим (невалидным) токеном
+            - Ожидается ответ: {"result": "ERROR",
+            "message":"token: должно соответствовать \\"^[0-9A-F]{32}$\\""}
             """)
     @Tag(REGRESSION)
     void logoutWithInvalidTokenAfterValidLogin() {
@@ -88,10 +94,7 @@ public class LogoutTest extends BaseTest {
                                         Сценарий:
                                         1. Вход с валидным токеном (ожидается успех)
                                         2. Попытка выхода с некорректным токеном (ожидается ошибка)
-                                        Ожидаемый результат:
-                                        • Выход должен быть отклонен
-                                        • Статус: 400 Bad Request
-                                        • Сообщение: неверный формат токена
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 validToken,
                                 validToken.length(),
@@ -109,8 +112,17 @@ public class LogoutTest extends BaseTest {
         Allure.step("Попытка выхода из системы с некорректным токеном", () -> {
             Response logoutResponse = performLogout(invalidToken);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'неверный формат токена'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'token: должно соответствовать \"^[0-9A-F]{32}$\"'", () ->
                     verifyInvalidTokenError(logoutResponse));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Система отклонила запрос на выход с некорректным токеном");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH))
+                    .withRequestBody(containing("token=" + invalidToken)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис НЕ вызывался с некорректным токеном");
         });
     }
 
@@ -121,7 +133,7 @@ public class LogoutTest extends BaseTest {
             Проверяет обработку запроса на выход без предварительной аутентификации:
             - Токен никогда не использовался для входа в систему
             - Отправляется запрос на выход
-            - Ожидается ошибка: токен не найден в системе
+            - Ожидается ответ: {"result": "ERROR", "message":"Token '<token>' not found"}
             """)
     @Tag(REGRESSION)
     void performLogoutWithoutLogin() {
@@ -133,7 +145,7 @@ public class LogoutTest extends BaseTest {
                                         Токен: %s
                                         Длина: %d символов
                                         Сценарий: Прямой запрос на выход без предварительного входа
-                                        Ожидаемый результат: ошибка 403 Forbidden
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token,
                                 token.length())));
@@ -141,8 +153,16 @@ public class LogoutTest extends BaseTest {
         Allure.step("Выполнение запроса на выход без предварительного входа", () -> {
             Response response = performLogout(token);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'токен не найден'", () ->
+            Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(response, token));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Система отклонила запрос на выход с токеном, не прошедшим LOGIN");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис НЕ вызывался (отсутствует сессия)");
         });
     }
 
@@ -150,10 +170,11 @@ public class LogoutTest extends BaseTest {
     @Story("Многократные операции")
     @DisplayName("Несколько попыток выхода подряд с одним токеном")
     @Description("""
-            Проверяет возможность выполнения нескольких запросов на выход подряд:
-            - Токен успешно аутентифицирован
-            - Выполняется первый выход из системы (успешно)
-            - Выполняется второй выход из системы (должен завершиться ошибкой, так как токен уже удален)
+            Проверяет поведение системы при нескольких запросах на выход подряд:
+            - Выполняется успешный вход с токеном
+            - Первый запрос на выход выполняется успешно
+            - Второй запрос на выход отклоняется (токен уже удален)
+            - Ожидается ответ: {"result":"OK"} для первого, {"result":"ERROR"} для второго
             """)
     @Tag(REGRESSION)
     void performMultipleLogoutsWithSameToken() {
@@ -184,8 +205,10 @@ public class LogoutTest extends BaseTest {
         Allure.step("Повторная попытка выхода из системы", () -> {
             Response secondLogout = performLogout(token);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'токен не найден'", () ->
+            Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(secondLogout, token));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Повторный выход отклонен (токен уже удален)");
         });
     }
 
@@ -193,10 +216,10 @@ public class LogoutTest extends BaseTest {
     @Story("Ошибки авторизации")
     @DisplayName("Выход из системы без ключа доступа")
     @Description("""
-            Проверяет обработку запроса на выход без обязательного ключа доступа (API ключа):
+            Проверяет обработку запроса на выход без обязательного заголовка X-Api-Key:
             - Выполняется успешный вход в систему с валидным токеном
             - Отправляется запрос на выход без заголовка авторизации
-            - Ожидается ошибка: 401 Unauthorized
+            - Ожидается ответ: {"result": "ERROR", "message":"Missing or invalid API Key"}
             """)
     @Tag(REGRESSION)
     void logoutWithoutApiKey() {
@@ -210,6 +233,7 @@ public class LogoutTest extends BaseTest {
                                         Сценарий:
                                         1. Вход в систему с токеном (ожидается успех)
                                         2. Попытка выхода без ключа доступа (ожидается ошибка)
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token)));
 
@@ -227,8 +251,16 @@ public class LogoutTest extends BaseTest {
                     .when()
                     .post(ENDPOINT);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'отсутствует ключ доступа'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Неверный API ключ отклонен");
+        });
+
+        Allure.step("Проверка, что внешний сервис вызывался только для LOGIN", () -> {
+            wireMockServer.verify(1, postRequestedFor(urlEqualTo(MOCK_AUTH)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис вызывался 1 раз (только для LOGIN)");
         });
     }
 
@@ -239,7 +271,7 @@ public class LogoutTest extends BaseTest {
             Проверяет обработку запроса на выход с некорректным ключом доступа:
             - Выполняется успешный вход в систему с валидным токеном
             - Отправляется запрос на выход с недействительным X-Api-Key
-            - Ожидается ошибка: 401 Unauthorized
+            - Ожидается ответ: {"result": "ERROR", "message":"Missing or invalid API Key"}
             """)
     @Tag(REGRESSION)
     void logoutWithInvalidApiKey() {
@@ -253,6 +285,7 @@ public class LogoutTest extends BaseTest {
                                         Сценарий:
                                         1. Вход в систему с токеном (ожидается успех)
                                         2. Попытка выхода с неверным ключом доступа (ожидается ошибка)
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token)));
 
@@ -270,8 +303,16 @@ public class LogoutTest extends BaseTest {
                     .when()
                     .post(ENDPOINT);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'неверный ключ доступа'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Неверный API ключ отклонен");
+        });
+
+        Allure.step("Проверка, что внешний сервис вызывался только для LOGIN", () -> {
+            wireMockServer.verify(1, postRequestedFor(urlEqualTo(MOCK_AUTH)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис вызывался 1 раз (только для LOGIN)");
         });
     }
 
@@ -284,6 +325,7 @@ public class LogoutTest extends BaseTest {
             - Выполнение действия с токеном (ACTION)
             - Завершение сессии (LOGOUT)
             - Проверка, что токен больше не работает после выхода
+            - Ожидается: {"result":"OK"} для первых трех операций, {"result":"ERROR"} для последней
             """)
     @Tag(REGRESSION)
     void fullTokenLifecycle() {
@@ -311,33 +353,32 @@ public class LogoutTest extends BaseTest {
         });
 
         performSuccessfulLogin(token);
-        performSuccessfulAction(token, "Выполнение действия с токеном");
+        performSuccessfulAction(token);
         performSuccessfulLogout(token);
 
         Allure.step("Попытка выполнения действия после выхода из системы", () -> {
-            Response finalActionResponse = performLogout(token);
+            Response finalActionResponse = performAction(token);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'токен не найден'", () ->
+            Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(finalActionResponse, token));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Действие после выхода отклонено");
         });
 
-        Allure.step("Итог тестирования", () -> {
-            String resultText = """
-                    ТЕСТ УСПЕШНО ЗАВЕРШЕН
-                    
-                    Что проверено (полный цикл работы токена):
-                    - ✓ Подготовка валидного токена
-                    - ✓ Успешный вход в систему (LOGIN)
-                    - ✓ Успешное выполнение действия (ACTION)
-                    - ✓ Успешный выход из системы (LOGOUT)
-                    - ✓ Отказ в выполнении действия после выхода
-                    - ✓ Корректный код ошибки 403
-                    - ✓ Понятное сообщение об ошибке
-                    
-                    Все этапы жизненного цикла токена работают корректно.
-                    """;
-            addTestData("Результат теста", resultText);
-        });
+        Allure.step("Итог тестирования", () ->
+                addTestData("РЕЗУЛЬТАТ ТЕСТА",
+                        """
+                                ПРОВЕРКА ПОЛНОГО ЖИЗНЕННОГО ЦИКЛА ТОКЕНА
+                                
+                                Что проверено:
+                                ✓ Подготовка валидного токена
+                                ✓ Успешный вход в систему (LOGIN)
+                                ✓ Успешное выполнение действия (ACTION)
+                                ✓ Успешный выход из системы (LOGOUT)
+                                ✓ Отказ в выполнении действия после выхода
+                                
+                                ВЫВОД: Все этапы жизненного цикла токена работают корректно.
+                                """));
     }
 
     @Test
@@ -367,7 +408,7 @@ public class LogoutTest extends BaseTest {
                                         3. Попытка действия с токеном 1 (ожидается ошибка)
                                         4. Действие с токеном 2 (ожидается успех)
                                         
-                                        Ожидаемый результат: сессии пользователей изолированы
+                                        Ожидается: сессии пользователей изолированы
                                         """,
                                 token1, token2)));
 
@@ -380,48 +421,49 @@ public class LogoutTest extends BaseTest {
         });
 
         Allure.step("Вход в систему для обоих пользователей", () -> {
-            Allure.step("Вход пользователя 1 (токен 1)", () -> {
+            Allure.step("Вход пользователя 1", () -> {
                 Response response1 = performLogin(token1);
-                verifyLoginSuccess(response1);
+                verifySuccess(response1);
+                addTestData("Пользователь 1", "✓ Вход выполнен");
             });
 
-            Allure.step("Вход пользователя 2 (токен 2)", () -> {
+            Allure.step("Вход пользователя 2", () -> {
                 Response response2 = performLogin(token2);
-                verifyLoginSuccess(response2);
+                verifySuccess(response2);
+                addTestData("Пользователь 2", "✓ Вход выполнен");
             });
         });
 
         performSuccessfulLogout(token1);
 
         Allure.step("Проверка состояния токенов после выхода пользователя 1", () -> {
-            Allure.step("Пользователь 1 пытается выполнить действие (ожидается ошибка)", () -> {
+            Allure.step("Пользователь 1 пытается выполнить действие", () -> {
                 Response action1Response = performAction(token1);
                 verifyTokenNotFoundError(action1Response, token1);
-                addTestData("Проверка токена 1", "✓ Токен 1 больше не работает - сессия завершена");
+                addTestData("Пользователь 1", "✓ Действие отклонено - сессия завершена");
             });
 
-            Allure.step("Пользователь 2 выполняет действие (ожидается успех)", () -> {
+            Allure.step("Пользователь 2 выполняет действие", () -> {
                 Response action2Response = performAction(token2);
-                verifyActionSuccess(action2Response, "Действие пользователя 2");
-                addTestData("Проверка токена 2", "✓ Токен 2 продолжает работать - сессия активна");
+                verifySuccess(action2Response);
+                addTestData("Пользователь 2", "✓ Действие выполнено - сессия активна");
             });
         });
 
-        Allure.step("Итог тестирования многопользовательского сценария", () -> {
-            String resultText = """
-                    МНОГОПОЛЬЗОВАТЕЛЬСКИЙ СЦЕНАРИЙ УСПЕШНО ВЫПОЛНЕН
-                    
-                    Проверено и подтверждено:
-                    ✓ Аутентификация двух разных пользователей
-                    ✓ Завершение сессии первого пользователя
-                    ✓ Первый пользователь больше не может выполнять действия
-                    ✓ Второй пользователь продолжает работать
-                    ✓ Сессии пользователей полностью изолированы
-                    
-                    Вывод: система корректно обрабатывает множественные сессии
-                    и обеспечивает изоляцию между разными пользователями.
-                    """;
-            addTestData("Результат теста", resultText);
-        });
+        Allure.step("Итог тестирования", () ->
+                addTestData("РЕЗУЛЬТАТ ТЕСТА",
+                        """
+                                ПРОВЕРКА ИЗОЛЯЦИИ СЕССИЙ
+                                
+                                Проверено и подтверждено:
+                                ✓ Аутентификация двух разных пользователей
+                                ✓ Завершение сессии первого пользователя
+                                ✓ Первый пользователь больше не может выполнять действия
+                                ✓ Второй пользователь продолжает работать
+                                ✓ Сессии пользователей полностью изолированы
+                                
+                                ВЫВОД: система корректно обрабатывает множественные сессии
+                                и обеспечивает изоляцию между разными пользователями.
+                                """));
     }
 }
