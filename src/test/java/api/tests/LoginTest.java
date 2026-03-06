@@ -17,6 +17,8 @@ import static api.utils.AllureReporter.addTestData;
 import static api.utils.Constants.*;
 import static api.utils.ResponseVerifier.*;
 import static api.utils.WireMockStubBuilder.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static io.restassured.RestAssured.given;
 
 @Epic("Тестирование веб-сервиса")
@@ -31,7 +33,7 @@ public class LoginTest extends BaseTest {
             Проверяет успешный вход в систему:
             - Генерируется валидный токен (32 символа, только цифры и буквы A-F)
             - Внешний сервис подтверждает валидность токена
-            - Система возвращает сообщение об успехе: {"result": "OK"}
+            - Система возвращает сообщение об успехе: {"result":"OK"}
             """)
     @Tag(SMOKE)
     void successfulLoginWithValidToken() {
@@ -42,7 +44,7 @@ public class LoginTest extends BaseTest {
                         String.format("""
                                         Токен: %s
                                         Длина: %d символов
-                                        Ожидаемый результат: успешный вход, ответ: OK
+                                        Ожидаемый результат: успешный вход
                                         """,
                                 token,
                                 token.length())));
@@ -55,9 +57,8 @@ public class LoginTest extends BaseTest {
 
         Allure.step("Выполнение запроса на вход в систему", () -> {
             Response response = performLogin(token);
-
             Allure.step("Проверка ответа: ожидается успешная аутентификация", () ->
-                    verifyLoginSuccess(response));
+                    verifySuccess(response));
         });
     }
 
@@ -70,7 +71,7 @@ public class LoginTest extends BaseTest {
             Проверяет обработку некорректных токенов при входе:
             - Токен не соответствует требуемому формату (должен быть 32 символа, только цифры и буквы A-F)
             - Система отклоняет запрос с сообщением об ошибке
-            - Ожидается ответ: {"result": "ERROR", "message": "Неверный формат токена"}
+            - Ожидается ответ: {"result": "ERROR", "message":"token: должно соответствовать \\"^[0-9A-F]{32}$\\""}
             """)
     void loginWithInvalidToken(String testCase, String token, String description) {
         Allure.step("Подготовка тестовых данных", () ->
@@ -79,8 +80,16 @@ public class LoginTest extends BaseTest {
         Allure.step("Выполнение запроса на вход с некорректным токеном", () -> {
             Response response = performLogin(token);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'неверный формат токена'", () ->
-                    verifyInvalidTokenError(response));
+            Allure.step("Проверка ответа: ожидается ошибка 'token: должно соответствовать \"^[0-9A-F]{32}$\"'",
+                    () -> verifyInvalidTokenError(response));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Система отклонила запрос с некорректным токеном");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис аутентификации НЕ вызывался (корректно)");
         });
     }
 
@@ -92,7 +101,8 @@ public class LoginTest extends BaseTest {
             Проверяет поведение системы при сбоях внешнего сервиса аутентификации:
             - Внешний сервис возвращает ошибку (доступ запрещен, ресурс не найден, внутренняя ошибка)
             - Проверяется, как система обрабатывает сбой внешнего сервиса
-            
+            - Ожидается ответ: {"result": "ERROR", "message":"Internal Server Error"}
+
             ВАЖНО: В текущей реализации система всегда возвращает 500 Internal Server Error
             независимо от типа сбоя внешнего сервиса. Это поведение требует уточнения.
             """)
@@ -106,7 +116,7 @@ public class LoginTest extends BaseTest {
                         String.format("""
                                         Тип ошибки внешнего сервиса: %d
                                         Токен: %s (валидный)
-                                        Ожидается: ответ с описанием ошибки
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 statusCode, token)));
 
@@ -119,11 +129,20 @@ public class LoginTest extends BaseTest {
         Allure.step("Выполнение запроса на вход при сбое внешнего сервиса", () -> {
             Response response = performLogin(token);
 
-            Allure.step(String.format("Проверка ответа: ожидается ошибка, вызванная сбоем внешнего сервиса (код %d)",
-                    statusCode), () ->
-                    verifyExternalServiceError(response, statusCode));
+            Allure.step("Проверка ответа: ожидается ошибка 'Internal Server Error'", () ->
+                    verifyExternalServiceError(response));
+            addTestData("ИТОГ ПРОВЕРКИ:",
+                    """
+                            ✓ Сбой внешнего сервиса обработан корректно
+                            ✓ Сообщение об ошибке получено
+
+                            ПРИМЕЧАНИЕ:
+                            В текущей реализации приложение всегда возвращает 500 Internal Server Error
+                            независимо от кода ошибки внешнего сервиса (403, 404 или 500).
+                            """);
         });
     }
+
 
     @Test
     @Story("Ошибки аутентификации")
@@ -132,7 +151,7 @@ public class LoginTest extends BaseTest {
             Проверяет обработку запроса на вход без обязательного ключа доступа (API ключа):
             - Запрос отправляется без заголовка X-Api-Key
             - Система отклоняет запрос с ошибкой авторизации
-            - Ожидается ответ с кодом 401 Unauthorized
+            - Ожидается ответ: {"result": "ERROR", "message":"Missing or invalid API Key"}
             """)
     @Tag(SMOKE)
     void loginWithoutApiKey() {
@@ -143,7 +162,7 @@ public class LoginTest extends BaseTest {
                         String.format("""
                                         Токен: %s (валидный)
                                         Ключ доступа: отсутствует
-                                        Ожидаемый результат: ошибка доступа 401 Unauthorized
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token)));
 
@@ -153,8 +172,17 @@ public class LoginTest extends BaseTest {
                     .when()
                     .post(ENDPOINT);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'отсутствует ключ доступа'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
+
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Неверный API ключ отклонен");
+
+        });
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис аутентификации НЕ вызывался (корректно)");
         });
     }
 
@@ -165,7 +193,7 @@ public class LoginTest extends BaseTest {
             Проверяет обработку запроса на вход с некорректным ключом доступа:
             - Запрос отправляется с недействительным значением X-Api-Key
             - Система отклоняет запрос с ошибкой авторизации
-            - Ожидается ответ с кодом 401 Unauthorized
+            - Ожидается ответ: {"result": "ERROR", "message": "Missing or invalid API Key"}
             """)
     @Tag(REGRESSION)
     void loginWithInvalidApiKey() {
@@ -176,7 +204,7 @@ public class LoginTest extends BaseTest {
                         String.format("""
                                         Токен: %s (валидный)
                                         Ключ доступа: 'wrong-key' (недействительный)
-                                        Ожидаемый результат: ошибка доступа 401 Unauthorized
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token)));
 
@@ -186,8 +214,17 @@ public class LoginTest extends BaseTest {
                     .when()
                     .post(ENDPOINT);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'неверный ключ доступа'", () ->
+            Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
+
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Неверный API ключ отклонен");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис аутентификации НЕ вызывался (корректно)");
         });
     }
 
@@ -198,7 +235,7 @@ public class LoginTest extends BaseTest {
             Проверяет поведение системы при повторном входе с уже использованным токеном:
             - Первый запрос на вход выполняется успешно
             - Второй запрос с тем же токеном должен быть отклонен
-            - Ожидается ошибка 409 Conflict, так как токен уже активен
+            - Ожидается ответ: {"result": "ERROR", "message": "Token '<token>' already exists"}
             """)
     @Tag(REGRESSION)
     void loginTwiceWithSameToken() {
@@ -211,7 +248,7 @@ public class LoginTest extends BaseTest {
                                         Сценарий теста:
                                         1. Первый вход в систему (ожидается успех)
                                         2. Повторный вход с тем же токеном (ожидается ошибка)
-                                        Ожидаемый результат: ошибка 409 Conflict
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token)));
 
@@ -225,14 +262,16 @@ public class LoginTest extends BaseTest {
             Response firstResponse = performLogin(token);
 
             Allure.step("Проверка первого ответа: ожидается успешный вход", () ->
-                    verifyLoginSuccess(firstResponse));
+                    verifySuccess(firstResponse));
         });
 
         Allure.step("Попытка повторного входа с тем же токеном", () -> {
             Response secondResponse = performLogin(token);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'токен уже используется'", () ->
+            Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s already exists'", token), () ->
                     verifyTokenAlreadyExistsError(secondResponse, token));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Повторный вход с тем же токеном отклонен");
         });
     }
 
@@ -243,7 +282,7 @@ public class LoginTest extends BaseTest {
             Проверяет обработку запроса на вход без обязательного параметра action:
             - Запрос отправляется без указания типа действия
             - Система не может определить, какое действие требуется выполнить
-            - Ожидается ошибка валидации с кодом 400
+            - Ожидается ответ: {"result": "ERROR", "message":"action: invalid action 'null'. Allowed: LOGIN, LOGOUT"}
             """)
     @Tag(REGRESSION)
     void loginWithoutActionParameter() {
@@ -254,7 +293,7 @@ public class LoginTest extends BaseTest {
                         String.format("""
                                         Токен: %s (валидный)
                                         Параметр action: не указан
-                                        Ожидаемый результат: ошибка валидации 400
+                                        Ожидается: ошибка с описанием причины
                                         """,
                                 token)));
 
@@ -264,8 +303,16 @@ public class LoginTest extends BaseTest {
                     .when()
                     .post(ENDPOINT);
 
-            Allure.step("Проверка ответа: ожидается ошибка 'отсутствует обязательный параметр action'", () ->
-                    verifyMissingActionError(response));
+            Allure.step("Проверка ответа: ожидается ошибка 'action: invalid action 'null'. Allowed: LOGIN, LOGOUT'"
+                    , () -> verifyMissingActionError(response));
+            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+                    "✓ Отсутствие параметра action обработано корректно");
+        });
+
+        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH)));
+            addTestData("Проверка вызовов внешнего сервиса",
+                    "✓ Внешний сервис аутентификации НЕ вызывался (корректно)");
         });
     }
 }

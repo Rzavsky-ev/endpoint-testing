@@ -12,7 +12,8 @@ import static io.restassured.RestAssured.given;
  * Утилитный класс для выполнения основных действий в тестах.
  * <p>
  * Содержит методы для выполнения запросов (LOGIN, ACTION, LOGOUT) и
- * готовые шаги с проверками для успешных сценариев.
+ * готовые шаги с проверками для успешных сценариев. Все методы автоматически
+ * добавляют шаги в Allure отчет.
  */
 public class ActionSteps {
 
@@ -61,41 +62,37 @@ public class ActionSteps {
 
     /**
      * Выполняет успешный вход в систему с проверкой.
-     * Добавляет шаг в Allure отчет.
      *
      * @param token валидный токен
      */
     public static void performSuccessfulLogin(String token) {
         Allure.step("Вход в систему с валидным токеном", () -> {
             Response response = performLogin(token);
-            ResponseVerifier.verifyLoginSuccess(response);
+            ResponseVerifier.verifySuccess(response);
         });
     }
 
     /**
      * Выполняет успешное действие с проверкой.
-     * Добавляет шаг в Allure отчет.
      *
-     * @param token    валидный токен
-     * @param stepName название шага для отчета
+     * @param token валидный токен
      */
-    public static void performSuccessfulAction(String token, String stepName) {
-        Allure.step(stepName, () -> {
+    public static void performSuccessfulAction(String token) {
+        Allure.step("Выполнение действия", () -> {
             Response response = performAction(token);
-            ResponseVerifier.verifyActionSuccess(response, stepName);
+            ResponseVerifier.verifySuccess(response);
         });
     }
 
     /**
      * Выполняет успешный выход из системы с проверкой.
-     * Добавляет шаг в Allure отчет.
      *
      * @param token валидный токен
      */
     public static void performSuccessfulLogout(String token) {
         Allure.step("Выход из системы", () -> {
             Response response = performLogout(token);
-            ResponseVerifier.verifyLogoutSuccess(response);
+            ResponseVerifier.verifySuccess(response);
         });
     }
 }

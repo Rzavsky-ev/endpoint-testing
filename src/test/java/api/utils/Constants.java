@@ -39,11 +39,8 @@ public class Constants {
 
     // ==================== HTTP статусы ====================
     public static final int HTTP_OK = 200;
-    public static final int HTTP_BAD_REQUEST = 400;
-    public static final int HTTP_UNAUTHORIZED = 401;
     public static final int HTTP_FORBIDDEN = 403;
     public static final int HTTP_NOT_FOUND = 404;
-    public static final int HTTP_CONFLICT = 409;
     public static final int HTTP_INTERNAL_ERROR = 500;
 
     // ==================== Сообщения об ошибках ====================
@@ -53,7 +50,6 @@ public class Constants {
     public static final String UNAUTHORIZED_MESSAGE = "Unauthorized";
     public static final String CONFLICT_MESSAGE = "Conflict";
     public static final String INTERNAL_MESSAGE = "Internal Server Error";
-    public static final String ERROR_MESSAGE = " Error";
     public static final String UNKNOWN_MESSAGE = "Unknown";
     public static final String TOKEN_NOT_FOUND_ERROR = "Token '%s' not found";
     public static final String INVALID_TOKEN_ERROR =
@@ -62,6 +58,7 @@ public class Constants {
     public static final String TOKEN_ALREADY_EXISTS_ERROR = "Token '%s' already exists";
     public static final String INVALID_ACTION_ERROR =
             "action: invalid action 'null'. Allowed: LOGIN, LOGOUT, ACTION";
+    public static final String NO_MESSAGE = "отсутствует";
 
     // ==================== Actions ====================
     public static final String ACTION_LOGIN = "LOGIN";

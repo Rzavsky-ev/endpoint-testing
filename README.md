@@ -166,9 +166,7 @@ mvn -Dtest=LoginTest#successfulLoginWithValidToken test
 
 Проверка ответов API:
 
-- `verifyLoginSuccess()` — проверка успешного входа
-- `verifyActionSuccess()` — проверка успешного действия
-- `verifyLogoutSuccess()` — проверка успешного выхода
+- `verifySuccess()` — проверка успешного действия
 - `verifyInvalidTokenError()` — проверка ошибки формата токена
 - `verifyTokenNotFoundError()` — проверка ошибки "токен не найден"
 - `verifyInvalidApiKeyError()` — проверка ошибки API ключа
