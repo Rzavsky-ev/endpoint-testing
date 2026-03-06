@@ -57,7 +57,6 @@ public class LoginTest extends BaseTest {
 
         Allure.step("Выполнение запроса на вход в систему", () -> {
             Response response = performLogin(token);
-
             Allure.step("Проверка ответа: ожидается успешная аутентификация", () ->
                     verifySuccess(response));
         });
