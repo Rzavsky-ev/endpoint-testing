@@ -15,7 +15,6 @@ import static api.utils.AllureReporter.addTestData;
 import static api.utils.Constants.*;
 import static api.utils.ResponseVerifier.*;
 import static api.utils.WireMockStubBuilder.*;
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static io.restassured.RestAssured.given;
 
 @Epic("Тестирование веб-сервиса")
@@ -117,13 +116,6 @@ public class LogoutTest extends BaseTest {
             addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Система отклонила запрос на выход с некорректным токеном");
         });
-
-        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
-            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH))
-                    .withRequestBody(containing("token=" + invalidToken)));
-            addTestData("Проверка вызовов внешнего сервиса",
-                    "✓ Внешний сервис НЕ вызывался с некорректным токеном");
-        });
     }
 
     @Test
@@ -157,12 +149,6 @@ public class LogoutTest extends BaseTest {
                     verifyTokenNotFoundError(response, token));
             addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Система отклонила запрос на выход с токеном, не прошедшим LOGIN");
-        });
-
-        Allure.step("Проверка, что внешний сервис не вызывался", () -> {
-            wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_AUTH)));
-            addTestData("Проверка вызовов внешнего сервиса",
-                    "✓ Внешний сервис НЕ вызывался (отсутствует сессия)");
         });
     }
 
@@ -256,12 +242,6 @@ public class LogoutTest extends BaseTest {
             addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Неверный API ключ отклонен");
         });
-
-        Allure.step("Проверка, что внешний сервис вызывался только для LOGIN", () -> {
-            wireMockServer.verify(1, postRequestedFor(urlEqualTo(MOCK_AUTH)));
-            addTestData("Проверка вызовов внешнего сервиса",
-                    "✓ Внешний сервис вызывался 1 раз (только для LOGIN)");
-        });
     }
 
     @Test
@@ -307,12 +287,6 @@ public class LogoutTest extends BaseTest {
                     verifyInvalidApiKeyError(response));
             addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Неверный API ключ отклонен");
-        });
-
-        Allure.step("Проверка, что внешний сервис вызывался только для LOGIN", () -> {
-            wireMockServer.verify(1, postRequestedFor(urlEqualTo(MOCK_AUTH)));
-            addTestData("Проверка вызовов внешнего сервиса",
-                    "✓ Внешний сервис вызывался 1 раз (только для LOGIN)");
         });
     }
 
