@@ -1,5 +1,4 @@
 name: API Tests CI
-
 on:
   push:
     branches: [ main ]
