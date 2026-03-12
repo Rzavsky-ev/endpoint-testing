@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 import static api.specs.RequestSpec.*;
 import static api.utils.ActionSteps.*;
-import static api.utils.AllureReporter.addTestData;
 import static api.utils.Constants.*;
 import static api.utils.ResponseVerifier.*;
 import static api.utils.WireMockStubBuilder.*;
@@ -37,7 +36,7 @@ public class LogoutTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s
                                         Длина: %d символов
@@ -51,7 +50,7 @@ public class LogoutTest extends BaseTest {
 
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервис проверки токенов настроен на успешный ответ");
         });
 
@@ -63,7 +62,7 @@ public class LogoutTest extends BaseTest {
 
             Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(actionResponse, token));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Токен больше не работает после выхода из системы");
         });
     }
@@ -84,7 +83,7 @@ public class LogoutTest extends BaseTest {
         String invalidToken = TokenGenerator.generateTokenOfRandomLength();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен 1 (валидный, для входа): %s
                                         Длина: %d символов
@@ -102,7 +101,7 @@ public class LogoutTest extends BaseTest {
 
         Allure.step("Имитация работы внешнего сервиса", () -> {
             mockAuthSuccess(validToken);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервис проверки токенов настроен на успешный ответ");
         });
 
@@ -113,7 +112,7 @@ public class LogoutTest extends BaseTest {
 
             Allure.step("Проверка ответа: ожидается ошибка 'token: должно соответствовать \"^[0-9A-F]{32}$\"'", () ->
                     verifyInvalidTokenError(logoutResponse));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Система отклонила запрос на выход с некорректным токеном");
         });
     }
@@ -132,7 +131,7 @@ public class LogoutTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s
                                         Длина: %d символов
@@ -147,7 +146,7 @@ public class LogoutTest extends BaseTest {
 
             Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(response, token));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Система отклонила запрос на выход с токеном, не прошедшим LOGIN");
         });
     }
@@ -167,7 +166,7 @@ public class LogoutTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s
                                         Длина: %d символов
@@ -181,7 +180,7 @@ public class LogoutTest extends BaseTest {
 
         Allure.step("Имитация работы внешнего сервиса", () -> {
             mockAuthSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервис проверки токенов настроен на успешный ответ");
         });
 
@@ -193,7 +192,7 @@ public class LogoutTest extends BaseTest {
 
             Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(secondLogout, token));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Повторный выход отклонен (токен уже удален)");
         });
     }
@@ -212,7 +211,7 @@ public class LogoutTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s (валидный)
                                         Ключ доступа: отсутствует
@@ -225,7 +224,7 @@ public class LogoutTest extends BaseTest {
 
         Allure.step("Имитация работы внешнего сервиса", () -> {
             mockAuthSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервис проверки токенов настроен на успешный ответ");
         });
 
@@ -239,7 +238,7 @@ public class LogoutTest extends BaseTest {
 
             Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Неверный API ключ отклонен");
         });
     }
@@ -258,7 +257,7 @@ public class LogoutTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s (валидный)
                                         Ключ доступа: 'wrong-key' (недействительный)
@@ -271,7 +270,7 @@ public class LogoutTest extends BaseTest {
 
         Allure.step("Имитация работы внешнего сервиса", () -> {
             mockAuthSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервис проверки токенов настроен на успешный ответ");
         });
 
@@ -285,7 +284,7 @@ public class LogoutTest extends BaseTest {
 
             Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Неверный API ключ отклонен");
         });
     }
@@ -306,7 +305,7 @@ public class LogoutTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s
                                         Длина: %d символов
@@ -322,7 +321,7 @@ public class LogoutTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
             mockDoActionSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервисы проверки токенов и выполнения действий настроены на успешные ответы");
         });
 
@@ -335,12 +334,12 @@ public class LogoutTest extends BaseTest {
 
             Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(finalActionResponse, token));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Действие после выхода отклонено");
         });
 
         Allure.step("Итог тестирования", () ->
-                addTestData("РЕЗУЛЬТАТ ТЕСТА",
+                Allure.addAttachment("РЕЗУЛЬТАТ ТЕСТА",
                         """
                                 ПРОВЕРКА ПОЛНОГО ЖИЗНЕННОГО ЦИКЛА ТОКЕНА
                                 
@@ -371,7 +370,7 @@ public class LogoutTest extends BaseTest {
         String token2 = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен 1 (пользователь 1): %s
                                         Токен 2 (пользователь 2): %s
@@ -390,7 +389,7 @@ public class LogoutTest extends BaseTest {
             mockAuthSuccess(token1);
             mockAuthSuccess(token2);
             mockDoActionSuccess(token2);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервисы настроены на успешные ответы для двух токенов");
         });
 
@@ -398,13 +397,13 @@ public class LogoutTest extends BaseTest {
             Allure.step("Вход пользователя 1", () -> {
                 Response response1 = performLogin(token1);
                 verifySuccess(response1);
-                addTestData("Пользователь 1", "✓ Вход выполнен");
+                Allure.addAttachment("Пользователь 1", "✓ Вход выполнен");
             });
 
             Allure.step("Вход пользователя 2", () -> {
                 Response response2 = performLogin(token2);
                 verifySuccess(response2);
-                addTestData("Пользователь 2", "✓ Вход выполнен");
+                Allure.addAttachment("Пользователь 2", "✓ Вход выполнен");
             });
         });
 
@@ -414,18 +413,18 @@ public class LogoutTest extends BaseTest {
             Allure.step("Пользователь 1 пытается выполнить действие", () -> {
                 Response action1Response = performAction(token1);
                 verifyTokenNotFoundError(action1Response, token1);
-                addTestData("Пользователь 1", "✓ Действие отклонено - сессия завершена");
+                Allure.addAttachment("Пользователь 1", "✓ Действие отклонено - сессия завершена");
             });
 
             Allure.step("Пользователь 2 выполняет действие", () -> {
                 Response action2Response = performAction(token2);
                 verifySuccess(action2Response);
-                addTestData("Пользователь 2", "✓ Действие выполнено - сессия активна");
+                Allure.addAttachment("Пользователь 2", "✓ Действие выполнено - сессия активна");
             });
         });
 
         Allure.step("Итог тестирования", () ->
-                addTestData("РЕЗУЛЬТАТ ТЕСТА",
+                Allure.addAttachment("РЕЗУЛЬТАТ ТЕСТА",
                         """
                                 ПРОВЕРКА ИЗОЛЯЦИИ СЕССИЙ
                                 

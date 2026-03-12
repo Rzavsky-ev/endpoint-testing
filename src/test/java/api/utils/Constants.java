@@ -25,7 +25,6 @@ public class Constants {
     public static final String API_KEY_HEADER_NAME = "X-Api-Key";
     public static final String CONTENT_TYPE = "Content-Type";
     public static final String ACCEPT = "Accept";
-    public static final String TEXT_PLAIN = "text/plain";
 
     // ==================== Параметры запросов ====================
     public static final String TOKEN_PARAM = "token";
