@@ -1,10 +1,10 @@
 package api.utils;
 
 import api.exceptions.UtilityClassException;
+import io.qameta.allure.Allure;
 import io.restassured.response.Response;
 
 import static api.specs.ResponseSpec.*;
-import static api.utils.AllureReporter.addTestData;
 import static api.utils.Constants.*;
 import static org.hamcrest.Matchers.*;
 
@@ -120,7 +120,7 @@ public class ResponseVerifier {
         int statusCode = response.getStatusCode();
         String result = response.jsonPath().getString(RESULT_PARAM);
 
-        addTestData("Анализ успешного действия",
+        Allure.addAttachment("Анализ успешного действия",
                 String.format("""
                                 ПРОВЕРКА УСПЕШНОГО ДЕЙСТВИЯ
                                 
@@ -149,7 +149,7 @@ public class ResponseVerifier {
         String actualResult = response.jsonPath().getString(RESULT_PARAM);
         String actualMessage = response.jsonPath().getString(MESSAGE_PARAM);
 
-        addTestData("Анализ ошибки",
+        Allure.addAttachment("Анализ ошибки",
                 String.format("""                                
                                 ОЖИДАЛОСЬ:
                                 • "result": "ERROR",
