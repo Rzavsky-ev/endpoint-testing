@@ -12,7 +12,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static api.specs.RequestSpec.*;
 import static api.utils.ActionSteps.*;
-import static api.utils.AllureReporter.addTestData;
 import static api.utils.Constants.*;
 import static api.utils.ResponseVerifier.*;
 import static api.utils.WireMockStubBuilder.*;
@@ -39,7 +38,7 @@ public class ActionTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s
                                         Длина: %d символов
@@ -53,7 +52,7 @@ public class ActionTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
             mockDoActionSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервис аутентификации и сервис выполнения действий настроены на успешный ответ");
         });
 
@@ -76,7 +75,7 @@ public class ActionTest extends BaseTest {
         String invalidToken = TokenGenerator.generateTokenOfRandomLength();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен 1 (валидный): %s
                                         Длина: %d символов
@@ -95,7 +94,7 @@ public class ActionTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(validToken);
             mockDoActionSuccess(validToken);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервис аутентификации и сервис выполнения действий настроены на успешный ответ");
         });
 
@@ -106,14 +105,14 @@ public class ActionTest extends BaseTest {
 
             Allure.step("Проверка ответа: ожидается ошибка 'token: должно соответствовать \"^[0-9A-F]{32}$\"'", () ->
                     verifyInvalidTokenError(actionResponse));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Система отклонила запрос с некорректным токеном");
         });
 
         Allure.step("Проверка, что внешний сервис не вызывался с невалидным токеном", () -> {
             wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_DO_ACTION))
                     .withRequestBody(containing("token=" + invalidToken)));
-            addTestData("Проверка вызовов внешнего сервиса",
+            Allure.addAttachment("Проверка вызовов внешнего сервиса",
                     "✓ Внешний сервис НЕ вызывался с невалидным токеном");
         });
     }
@@ -132,7 +131,7 @@ public class ActionTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s (валидный)
                                         Длина: %d символов
@@ -147,7 +146,7 @@ public class ActionTest extends BaseTest {
 
             Allure.step("Проверка ответа: ожидается ошибка 'Token not found'", () ->
                     verifyTokenNotFoundError(response, token));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Система отклонила запрос с токеном, не прошедшим LOGIN");
         });
     }
@@ -167,7 +166,7 @@ public class ActionTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s
                                         Длина: %d символов
@@ -183,7 +182,7 @@ public class ActionTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
             mockDoActionSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервисы настроены на успешные ответы");
         });
 
@@ -195,7 +194,7 @@ public class ActionTest extends BaseTest {
 
             Allure.step(String.format("Проверка ответа: ожидается ошибка 'Token %s not found'", token), () ->
                     verifyTokenNotFoundError(actionResponse, token));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Система отклонила запрос с несуществующим токеном");
         });
     }
@@ -221,7 +220,7 @@ public class ActionTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Код ошибки внешнего сервиса: %d
                                         Токен: %s (валидный)
@@ -235,7 +234,7 @@ public class ActionTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
             mockDoActionError(token, statusCode);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     String.format("Сервис выполнения действий настроен на возврат ошибки с кодом %d", statusCode));
         });
 
@@ -246,7 +245,7 @@ public class ActionTest extends BaseTest {
 
             Allure.step("Проверка ответа: ожидается ошибка 'Internal Server Error'", () ->
                     verifyExternalServiceError(actionResponse));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ:",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ:",
                     """
                             ✓ Сбой внешнего сервиса обработан корректно
                             ✓ Сообщение об ошибке получено
@@ -273,7 +272,7 @@ public class ActionTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s
                                         Длина: %d символов
@@ -289,7 +288,7 @@ public class ActionTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
             mockDoActionSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервисы настроены на успешные ответы");
         });
 
@@ -299,10 +298,10 @@ public class ActionTest extends BaseTest {
             for (int i = 1; i <= 3; i++) {
                 Response response = performAction(token);
                 verifySuccess(response);
-                addTestData(String.format("Результат ACTION №%d", i),
+                Allure.addAttachment(String.format("Результат ACTION №%d", i),
                         String.format("✓ Действие %d выполнено успешно", i));
             }
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Все 3 действия ACTION выполнены успешно");
         });
     }
@@ -321,7 +320,7 @@ public class ActionTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s (валидный)
                                         API ключ: отсутствует
@@ -335,7 +334,7 @@ public class ActionTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
             mockDoActionSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервисы настроены на успешные ответы");
         });
 
@@ -349,13 +348,13 @@ public class ActionTest extends BaseTest {
 
             Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Неверный API ключ отклонен");
         });
 
         Allure.step("Проверка, что внешний сервис не вызывался", () -> {
             wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_DO_ACTION)));
-            addTestData("Проверка вызовов внешнего сервиса",
+            Allure.addAttachment("Проверка вызовов внешнего сервиса",
                     "✓ Внешний сервис НЕ вызывался с отсутствующим API ключом");
         });
     }
@@ -374,7 +373,7 @@ public class ActionTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s (валидный)
                                         API ключ: 'wrong-key' (недействительный)
@@ -388,7 +387,7 @@ public class ActionTest extends BaseTest {
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
             mockDoActionSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервисы настроены на успешные ответы");
         });
 
@@ -402,13 +401,13 @@ public class ActionTest extends BaseTest {
 
             Allure.step("Проверка ответа: ожидается ошибка 'Missing or invalid API Key'", () ->
                     verifyInvalidApiKeyError(response));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Неверный API ключ отклонен");
         });
 
         Allure.step("Проверка, что внешний сервис не вызывался", () -> {
             wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_DO_ACTION)));
-            addTestData("Проверка вызовов внешнего сервиса",
+            Allure.addAttachment("Проверка вызовов внешнего сервиса",
                     "✓ Внешний сервис НЕ вызывался с неверным API ключом");
         });
     }
@@ -428,7 +427,7 @@ public class ActionTest extends BaseTest {
         String token = TokenGenerator.generateValidToken();
 
         Allure.step("Подготовка тестовых данных", () ->
-                addTestData("Тестовый сценарий",
+                Allure.addAttachment("Тестовый сценарий",
                         String.format("""
                                         Токен: %s (валидный)
                                         Длина: %d символов
@@ -443,7 +442,7 @@ public class ActionTest extends BaseTest {
 
         Allure.step("Имитация работы внешних сервисов", () -> {
             mockAuthSuccess(token);
-            addTestData("Настройка тестового окружения",
+            Allure.addAttachment("Настройка тестового окружения",
                     "Сервис аутентификации настроен на успешный ответ");
         });
 
@@ -458,13 +457,13 @@ public class ActionTest extends BaseTest {
             Allure.step("Проверка ответа:" +
                     " ожидается ошибка 'action: invalid action 'null'. Allowed: LOGIN, LOGOUT, ACTION'", () ->
                     verifyMissingActionError(actionResponse));
-            addTestData("РЕЗУЛЬТАТ ПРОВЕРКИ",
+            Allure.addAttachment("РЕЗУЛЬТАТ ПРОВЕРКИ",
                     "✓ Отсутствие параметра action обработано корректно");
         });
 
         Allure.step("Проверка, что внешний сервис не вызывался", () -> {
             wireMockServer.verify(0, postRequestedFor(urlEqualTo(MOCK_DO_ACTION)));
-            addTestData("Проверка вызовов внешнего сервиса",
+            Allure.addAttachment("Проверка вызовов внешнего сервиса",
                     "✓ Внешний сервис НЕ вызывался с отсутствующим параметром action");
         });
     }

@@ -147,13 +147,6 @@ mvn -Dtest=LoginTest#successfulLoginWithValidToken test
 - `mockDoActionSuccess()` — успешный ответ от /doAction
 - `mockDoActionError()` — ошибочный ответ от /doAction
 
-#### AllureReporter (api.utils)
-
-Работа с Allure отчетами:
-
-- `addTestData()` — добавление вложений
-- `getStatusText()` — преобразование HTTP кодов в текст
-
 #### ActionSteps (api.utils)
 
 Выполнение основных действий:
