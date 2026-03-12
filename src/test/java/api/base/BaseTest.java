@@ -16,9 +16,6 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
  */
 public class BaseTest {
 
-    /**
-     * WireMock сервер для имитации внешних сервисов.
-     */
     protected static WireMockServer wireMockServer;
 
     /**
