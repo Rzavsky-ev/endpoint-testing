@@ -1,4 +1,4 @@
-name: Simple Check
+name: API Tests CI
 
 on:
   pull_request:
